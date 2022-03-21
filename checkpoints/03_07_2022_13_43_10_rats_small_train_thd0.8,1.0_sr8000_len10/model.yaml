@@ -1,0 +1,31 @@
+sampling_rate: &sr_ 8000
+n_frequencies: &nfreq 1000
+
+
+        
+compressor:
+    sr: *sr_
+    threshold_init: -10.0
+    ratio_init: 30.0
+    makeup_init: 0.0
+    attack_init: 1.0e-7
+    release_init: 1.0e-3
+    downsample_factor: 16.0
+
+distortion:
+    distortion_threshold_init: 20.0
+
+FIRfilter:
+    # scale_fn:
+    n_frequency_bins: *nfreq
+    magnitude_init:
+filtered_noise:
+    # scale_fn:
+    initial_bias_init: 
+    n_frequency_bins: *nfreq
+    magnitude_init: 
+
+
+        
+        
+        
