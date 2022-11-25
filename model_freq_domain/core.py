@@ -457,7 +457,6 @@ def _griffin_lim_tensorflow(S, hparams):
 	issue: https://github.com/tensorflow/tensorflow/issues/28444
 	"""
 	# S = tf.expand_dims(S, 0)
-	# print("spec shape", S.shape)
 	S_complex = tf.identity(tf.cast(S, dtype=tf.complex64))
 	y = _istft_tensorflow(S_complex, hparams)
 	for _ in range(hparams.griffin_lim_iters):
