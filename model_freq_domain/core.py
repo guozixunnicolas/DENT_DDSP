@@ -132,7 +132,6 @@ def upsample_with_windows(inputs: tf.Tensor,
 			'by the number of input frames{}. (timesteps:{}, frames:{}, '
 			'add_endpoint={}).'.format(minus_one, n_timesteps, n_frames,
 									add_endpoint))
-	print("so divide", n_timesteps, n_intervals)
 	# Constant overlap-add, half overlapping windows.
 	hop_size = n_timesteps // n_intervals
 	window_length = 2 * hop_size
@@ -143,12 +142,10 @@ def upsample_with_windows(inputs: tf.Tensor,
 	# Broadcast multiply.
 	# Add dimension for windows [batch_size, n_channels, n_frames, window].
 	x = x[:, :, :, tf.newaxis]
-	print(f"xraw.{x.shape}")
 	window = window[tf.newaxis, tf.newaxis, tf.newaxis, :]
 	x_windowed = (x * window)#batch, n_channel, n_frames, 1 * batch, n_channel, 1, window_size
 
 	x = tf.signal.overlap_and_add(x_windowed, hop_size)
-	print(f" window:{window.shape}, x_windowed:{x_windowed.shape}, x_overlap_add:{x.shape}")
 
 	# Transpose back.
 	x = tf.transpose(x, perm=[0, 2, 1])  # [batch_size, n_timesteps, n_channels]
@@ -165,11 +162,11 @@ def downsample_with_windows(inputs, hparams):
 	framed_windowed_inputs = tf.matmul(framed_inputs, window)
 	# framed_windowed_inputs = tf.einsum('bfow,bfwo', framed_inputs, window)
 	out = framed_windowed_inputs[:, :, :,0]
-	print(f"inputs:{inputs.shape},frame input:{framed_inputs.shape}, window:{window.shape}, framed_windowed_inputs:{framed_windowed_inputs.shape}, out:{out.shape}")
+	# print(f"inputs:{inputs.shape},frame input:{framed_inputs.shape}, window:{window.shape}, framed_windowed_inputs:{framed_windowed_inputs.shape}, out:{out.shape}")
 	return out
 def mag_phase_2_real_imag(mag, phase):     
 	# print("type", type(mag), type) 
-	print("type",type(mag), type(phase) )
+	# print("type",type(mag), type(phase) )
 	cos_phase = tf.math.cos(phase)
 	sin_phase = tf.math.sin(phase)
 	r= tf.complex(mag*cos_phase, mag*sin_phase)
@@ -426,7 +423,6 @@ def frequency_impulse_response(magnitudes: tf.Tensor,
 	"""
 	# Get the IR (zero-phase form).
 	magnitudes = tf.complex(magnitudes, tf.zeros_like(magnitudes)) #imaginary part == 0
-	# print("wtf!!", magnitudes)
 	impulse_response = tf.signal.irfft(magnitudes)
 
 	# Window and put in causal form.
@@ -461,7 +457,7 @@ def _griffin_lim_tensorflow(S, hparams):
 	issue: https://github.com/tensorflow/tensorflow/issues/28444
 	"""
 	# S = tf.expand_dims(S, 0)
-	print("spec shape", S.shape)
+	# print("spec shape", S.shape)
 	S_complex = tf.identity(tf.cast(S, dtype=tf.complex64))
 	y = _istft_tensorflow(S_complex, hparams)
 	for _ in range(hparams.griffin_lim_iters):
@@ -487,11 +483,11 @@ def _griffin_lim_numpy(S, hparams):
 	angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
 	S_complex = np.abs(S).astype(np.complex)
 	y = _istft(S_complex * angles, hparams)
-	print(f"S:{S.shape},S_com:{S_complex.shape}, y:{y.shape}, angle:{angles.shape}")
+	# print(f"S:{S.shape},S_com:{S_complex.shape}, y:{y.shape}, angle:{angles.shape}")
 
 	for i in range(hparams.griffin_lim_iters):
 		angles = np.exp(1j * np.angle(_stft(y, hparams)))
-		print("angles", _stft(y, hparams).shape)
+		# print("angles", _stft(y, hparams).shape)
 		y = _istft(S_complex * angles, hparams)
 	y = tf.expand_dims(y, 0)
 	return y
@@ -544,7 +540,7 @@ def compressor_fft_based(audio,sr,threshold, ratio,makeup, attack_time,  release
 	spectrogram_phase = tf_float32(tf.math.angle(spectrogram_raw))
 
 	spectrogram_db = 20*log10(abs(spectrogram_mag)) 
-	print("spectrogram_db", spectrogram_db.shape, spectrogram_db)
+	# print("spectrogram_db", spectrogram_db.shape, spectrogram_db)
 	# print("raw vs float", spectrogram_raw, spectrogram_mag)
 	# print("phase", spectrogram_phase)
 	# plt.imsave("spec_ori.png",np.transpose(spectrogram_db[0].numpy()))
@@ -565,7 +561,7 @@ def compressor_fft_based(audio,sr,threshold, ratio,makeup, attack_time,  release
 	smoothed_gain = tf.where(tf.math.greater(spec_gain_floor, smoothed_gain), 
 								spec_gain_floor,smoothed_gain)
 	smoothed_gain = tf.transpose(smoothed_gain, perm=[1, 0, 2])
-	print("check gain", gain.numpy(), smoothed_gain.numpy())
+	# print("check gain", gain.numpy(), smoothed_gain.numpy())
 	# for i in range(20):
 	# 	print("smoothed gain",gain[0, i, :10].numpy(), smoothed_gain[0, i, :10].numpy())
 	plt.imsave("smoothed_gain.png",np.rot90(smoothed_gain[0].numpy()) , dpi=1200)
@@ -587,11 +583,11 @@ def compressor_fft_based(audio,sr,threshold, ratio,makeup, attack_time,  release
 	else:
 
 		# compressed_sig = _griffin_lim_tensorflow(smoothed_compressed_spectrogram,hparams)
-		print("audio", audio.shape, smoothed_compressed_spectrogram.shape)
+		# print("audio", audio.shape, smoothed_compressed_spectrogram.shape)
 		input_to_grif = tf.transpose(smoothed_compressed_spectrogram[0]).numpy()
 		compressed_sig = librosa.griffinlim(input_to_grif, n_iter=hparams.griffin_lim_iters, hop_length=hparams.hop_length, win_length=hparams.win_length, window='hann', center=False)
 		compressed_sig = tf.convert_to_tensor(compressed_sig[tf.newaxis, ...])
-		print("compressed sig shape", compressed_sig.shape)
+		# print("compressed sig shape", compressed_sig.shape)
 		# compressed_sig = _griffin_lim_numpy(smoothed_compressed_spectrogram,hparams)
 	#mag-phase 2 real-img
 
@@ -640,7 +636,7 @@ def compressor_beta(audio,sr,threshold, ratio,makeup, attack_time,  release_time
 	x = [i for i in range(gain.shape[1])] 
 	y = gain[0]
 	plt.plot(x, y, color ="red")
-	print("gain",gain)
+	# print("gain",gain)
 	plt.savefig('gain_time.png')
 	# plt.imsave("gain_time.png",gain.numpy() , dpi=1200)
 
@@ -669,7 +665,7 @@ def compressor_beta(audio,sr,threshold, ratio,makeup, attack_time,  release_time
 
 
 	out = mag_phase_2_real_imag(smoothed_gain_fft, spectrogram_phase) #pending change
-	print("smoothed gain fft", smoothed_gain_fft.shape, spectrogram_phase.shape, out.shape)
+	# print("smoothed gain fft", smoothed_gain_fft.shape, spectrogram_phase.shape, out.shape)
 
 	smoothed_gain_fft_time = _istft_tensorflow(out, hparams)
 	x = [i for i in range(smoothed_gain_fft_time.shape[1])] 
@@ -684,7 +680,7 @@ def compressor_beta(audio,sr,threshold, ratio,makeup, attack_time,  release_time
 	smoothed_compressed_audio_db = audio_db + gain + makeup
 	smoothed_compressed_audio = 10.0**((smoothed_compressed_audio_db)/20.0)
 	smoothed_compressed_audio = tf.where(audio<0, -smoothed_compressed_audio, smoothed_compressed_audio)
-	print("check audio", smoothed_compressed_audio_db.shape, audio.shape, smoothed_compressed_audio_db, smoothed_compressed_audio)
+	# print("check audio", smoothed_compressed_audio_db.shape, audio.shape, smoothed_compressed_audio_db, smoothed_compressed_audio)
 	return smoothed_compressed_audio
 
 
