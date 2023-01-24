@@ -11,3 +11,6 @@ Implementation of the proposed Computationally-efficient dynamic range compresso
 
 ## Simulation demo
 https://guozixunnicolas.github.io/DENT-DDSP-demo/
+
+##Tutorial
+Want to get started in DENT-DDSP? Check out the google colab tutorial I have created: https://colab.research.google.com/drive/1Y1Qsz1PM71OuZ3i4vT7zJ4yLP6iwAKeH
